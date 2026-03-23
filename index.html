@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSFW Human Evaluation</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; background-color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .hub-container { background: #ffffff; padding: 50px 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); text-align: center; max-width: 500px; width: 100%; }
+        h1 { color: #0f172a; margin-top: 0; margin-bottom: 5px; font-size: 28px; letter-spacing: -0.5px; }
+        h2 { color: #475569; margin-top: 0; margin-bottom: 35px; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+        p.subtitle { color: #64748b; margin-bottom: 35px; font-size: 15px; }
+        
+        .input-group { margin-bottom: 25px; text-align: left; }
+        .input-label { display: block; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+        .phone-input { width: 100%; padding: 16px; border: 2px solid #cbd5e1; border-radius: 12px; font-size: 16px; transition: border-color 0.2s; background: #f8fafc; }
+        .phone-input:focus { outline: none; border-color: #60a5fa; background: #ffffff; }
+        
+        .button-group { display: flex; flex-direction: row; gap: 16px; }
+        
+        /* 버튼 배경색 연하게 변경 (기존 #3b82f6 -> #60a5fa) */
+        .btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 10px; font-size: 18px; font-weight: 600; color: #ffffff; background: #60a5fa; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(96, 165, 250, 0.2); }
+        .btn:hover { background: #3b82f6; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3); }
+        
+        /* 이미지 버튼 배경색 연하게 변경 (기존 #8b5cf6 -> #a78bfa) */
+        .btn-image { background: #a78bfa; box-shadow: 0 4px 6px rgba(167, 139, 250, 0.2); }
+        .btn-image:hover { background: #8b5cf6; box-shadow: 0 6px 12px rgba(139, 92, 246, 0.3); }
+        
+        .btn img { width: 64px; height: 64px; margin-bottom: 15px; object-fit: contain; }
+        
+        .admin-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: #cbd5e1; color: #64748b; border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-weight: bold; font-size: 11px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .admin-btn:hover { background: #94a3b8; color: white; transform: scale(1.1); }
+    </style>
+</head>
+<body>
+    <div class="hub-container">
+        <h1>T2I Model Jailbreak</h1>
+        <h2>Human Evaluation</h2>
+        
+        <form id="mainForm" action="login.php" method="POST">
+            <input type="hidden" name="type" id="surveyType" value="">
+            <input type="hidden" name="step" value="check">
+            
+            <div class="input-group">
+                <label for="phoneInput" class="input-label" style="text-align: center;">Name or Nickname / 이름 또는 닉네임</label>
+                <input type="text" name="phone" id="phoneInput" class="phone-input" placeholder="Ex. John Doe / 홍길동 " required autofocus>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" onclick="submitForm('text')" class="btn">
+                    <img src="prompt.png" alt="Prompt Icon">
+                    Prompts evaluation
+                </button>
+                <button type="button" onclick="submitForm('image')" class="btn btn-image">
+                    <img src="image.png" alt="Image Icon">
+                    Images evaluation
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <button class="admin-btn" onclick="adminLogin()">Admin</button>
+
+    <script>
+        function submitForm(type) {
+            const phoneInput = document.getElementById('phoneInput');
+            let rawValue = phoneInput.value;
+            
+            /* 모든 공백 제거 및 소문자 변환 적용 */
+            let processedValue = rawValue.replace(/\s+/g, '').toLowerCase();
+
+            if (!processedValue) {
+                alert(
+                    'Please enter your name or nickname to save your progress.\n' +
+                    '진행상황 저장을 위해 이름 또는 닉네임을 입력해주세요.'
+                );
+                phoneInput.focus();
+                return;
+            }
+            
+            /* 서버로 보내기 직전에 정제된 값으로 입력창 값을 덮어쓰기 */
+            phoneInput.value = processedValue;
+
+            document.getElementById('surveyType').value = type;
+            document.getElementById('mainForm').submit();
+        }
+
+        function adminLogin() {
+            const pw = prompt("관리자 비밀번호를 입력하세요:");
+            if (pw !== null) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'prompt_stats.php';
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'admin_pw';
+                input.value = pw;
+
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>
